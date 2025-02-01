@@ -34,8 +34,3 @@ void Socket::check_connection(int item_to_check) {
 struct sockaddr_in Socket::get_address() { return address; }
 
 int Socket::get_sock() { return sock; }
-
-int Socket::get_connection() { return connection; }
-
-// Setters
-void Socket::set_connection(int conn) { connection = conn; }
