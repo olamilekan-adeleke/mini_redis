@@ -9,6 +9,7 @@ class Server {
 private:
   char buffer[1024] = {0};
   ListeningSocket *socket;
+  void handle_client(int client_socket);
 
 public:
   Server();
