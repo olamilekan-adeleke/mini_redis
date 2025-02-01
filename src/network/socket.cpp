@@ -2,6 +2,9 @@
 #include <iostream>
 #include <netinet/in.h>
 
+// created using this C implementation
+// https://medium.com/from-the-scratch/http-server-what-do-you-need-to-know-to-build-a-simple-http-server-from-scratch-d1ef8945e4fa
+
 Socket::Socket(int domain, int service, int port, u_long interface) {
 
   // define address
