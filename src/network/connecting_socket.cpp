@@ -5,7 +5,6 @@ ConnectingSocket::ConnectingSocket(int domain, int service, int port,
     : Socket(domain, service, port, interface) {
 
   int connection = connect_to_network(get_sock(), get_address());
-  // set_connection(connection);
   check_connection(connection);
 }
 

@@ -14,12 +14,8 @@ int main() {
       exit(0);
     }
 
-    // Process other commands...
-    // You can inspect raw bytes here:
     for (size_t i = 0; i < length; i++) {
-      // std::cout << std::hex << (int)data[i] << " ";
       std::cout << static_cast<char>(data[i]);
-      // std::cout << (int)data[i] << " ";
     }
     std::cout << std::endl;
 
