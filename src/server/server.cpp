@@ -16,7 +16,15 @@ Server::Server() {
   socket = new ListeningSocket(domain, service, port, interface, bklg);
 }
 
+void Server::set_handler(RequestHandler new_handler) {
+  handler = std::move(new_handler);
+}
+
 void Server::start_server() {
+  if (!handler) {
+    throw std::runtime_error("No request handler set");
+  }
+
   while (true) {
     std::cout << "Server is Waiting for connection..." << std::endl;
 
@@ -51,15 +59,11 @@ void Server::handle_client(int client_socket) {
       break;
     }
 
-    std::string response;
-    if (strncmp(buffer, "PING", 4) == 0) {
-      response = "+PONG\r\n";
-    } else {
-      response = "+OK\r\n";
-    }
+    std::vector<uint8_t> response =
+        handler(reinterpret_cast<const uint8_t *>(buffer), bytes_read);
 
     // Send response
-    if (write(client_socket, response.c_str(), response.length()) < 0) {
+    if (write(client_socket, response.data(), response.size()) < 0) {
       std::cerr << "Write error" << std::endl;
       break;
     }
