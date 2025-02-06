@@ -1,3 +1,4 @@
+#include "../include/parser/command_parser.hpp"
 #include "../include/server/server.hpp"
 #include <arpa/inet.h>
 #include <iostream>
@@ -5,6 +6,8 @@
 #include <unistd.h>
 
 using namespace std;
+
+// SET session_id "abc123" EX 300 NX
 
 int main() {
   Server server = Server();
@@ -18,6 +21,23 @@ int main() {
       std::cout << static_cast<char>(data[i]);
     }
     std::cout << std::endl;
+
+    std::vector<uint8_t> req_data = {data, data + length};
+
+    try {
+
+      CommandParser command_parser = CommandParser();
+      OptionalUniquePtr<BaseCommand> command = command_parser.parse(req_data);
+
+      if (command.has_value()) {
+        std::unique_ptr<BaseCommand> cmd = std::move(*command);
+        std::vector<uint8_t> resp = cmd->execute();
+        return resp;
+      }
+
+    } catch (const std::runtime_error &e) {
+      std::cerr << "Error: " << e.what() << std::endl;
+    }
 
     // Return custom response
     std::string ok = "+OK\r\n";

@@ -6,12 +6,16 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(include)
 include_directories(include/nework)
 include_directories(include/server)
+include_directories(include/parser)
+include_directories(include/command)
 
 # Automatically detect all .cpp files in src/ and lib/ (now and future)
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp" 
     "src/nework/*.cpp" 
     "src/server/*.cpp" 
+    "src/parser/*.cpp"
+    "src/command/*.cpp"
 )
 
 # Build executable from all detected sources
