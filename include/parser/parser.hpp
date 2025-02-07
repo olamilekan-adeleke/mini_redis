@@ -1,8 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <any>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 class RespParser {
@@ -21,12 +21,12 @@ private:
   int readInt();
 
   std::optional<std::string> parseBulkString();
-  std::vector<std::any> parseArray();
+  std::vector<std::string> parseArray();
 
 public:
   RespParser(std::vector<uint8_t> &buf);
 
-  std::any parse();
+  std::vector<std::string> parse();
 };
 
 #endif // !PARSER_H

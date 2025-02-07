@@ -8,6 +8,7 @@ include_directories(include/nework)
 include_directories(include/server)
 include_directories(include/parser)
 include_directories(include/command)
+include_directories(include/utils)
 
 # Automatically detect all .cpp files in src/ and lib/ (now and future)
 file(GLOB_RECURSE SOURCES 
@@ -16,6 +17,7 @@ file(GLOB_RECURSE SOURCES
     "src/server/*.cpp" 
     "src/parser/*.cpp"
     "src/command/*.cpp"
+    "src/utils/*.cpp"
 )
 
 # Build executable from all detected sources

@@ -2,6 +2,8 @@
 #include "../../include/command/command_error.hpp"
 #include "../../include/command/set_command.hpp"
 #include "../../include/parser/parser.hpp"
+#include <algorithm>
+#include <cstdio>
 #include <iostream>
 #include <memory>
 
@@ -13,35 +15,32 @@ CommandParser::parse(std::vector<uint8_t> &buffer) {
 
   try {
 
-    std::any result = resp_parser.parse();
+    std::vector<std::string> result = resp_parser.parse();
 
-    if (result.type() == typeid(std::string)) {
-      std::string str = std::any_cast<std::string>(result);
-      // Handle Singel String later
-      throw std::runtime_error("Unexpected route, got only STRING");
+    printf("Array size: %lu\n", result.size());
 
-    } else if (result.type() == typeid(std::vector<std::any>)) {
-      std::vector<std::string> array =
-          std::any_cast<std::vector<std::string>>(result);
-
-      if (array.size() == 0) {
-        std::cout << "Empty array received." << std::endl;
-        return std::make_unique<CommandError>("Empty array received.");
-      } else if (array[0] == "SET") {
-
-        return std::make_unique<SetCommand>(SetCommand::parseSetCommand(array));
-      } else {
-        std::cout << "Unimplemented command received." << std::endl;
-        return std::make_unique<CommandError>("Unimplemented command received");
-      }
-
-    } else if (result.type() == typeid(std::nullptr_t)) {
-      std::cout << "Null bulk string received." << std::endl;
-      return std::make_unique<CommandError>("Null bulk string received");
-    } else {
-      std::cout << "Unknown type received." << std::endl;
-      return std::make_unique<CommandError>("Unknown type received.");
+    if (result.empty()) {
+      std::cout << "Empty array received." << std::endl;
+      return std::make_unique<CommandError>("Empty array received.");
     }
+
+    // Print the array elements (as strings if possible)
+    std::cout << "Array: [";
+    for (const std::string &element : result) {
+      std::cout << element << ", ";
+    }
+    std::cout << "]" << std::endl;
+
+    std::string command = result[0];
+    std::transform(command.begin(), command.end(), command.begin(), ::toupper);
+
+    if (command == "SET") {
+      return std::make_unique<SetCommand>(SetCommand::parseSetCommand(result));
+    } else {
+      std::cout << "Unimplemented command received." << std::endl;
+      return std::make_unique<CommandError>("Unimplemented command received");
+    }
+
   } catch (const std::runtime_error &e) {
     std::cerr << "Error: " << e.what() << std::endl;
 

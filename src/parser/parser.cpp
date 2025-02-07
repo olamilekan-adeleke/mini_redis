@@ -1,20 +1,31 @@
 #include "../../include/parser/parser.hpp"
+#include "../../include/utils/my_utils.hpp"
+#include <cstdio>
 #include <iostream>
+#include <optional>
 #include <sstream>
 
-std::vector<std::any> _parseArray();
+std::vector<std::string> _parseArray();
 std::optional<std::string> _parseBulkString();
-std::any parse();
+std::vector<std::string> parse();
 
 RespParser::RespParser(std::vector<uint8_t> &buf) : buffer(std::move(buf)) {};
 
-std::any RespParser::parse() {
-  uint8_t type = peekByte();
+std::vector<std::string> RespParser::parse() {
+  uint8_t type = buffer[position];
+  printf("Parsing: %c\n", type);
 
   if (type == ASTERISK_SIGN) {
+    position++;
     return parseArray();
   } else if (type == DOLLAR_SIGN) {
-    return parseBulkString();
+    position++;
+    auto bulkString = parseBulkString();
+    if (bulkString.has_value()) {
+      return {bulkString.value()};
+    } else {
+      return {};
+    }
   }
 
   std::stringstream err;
@@ -22,33 +33,31 @@ std::any RespParser::parse() {
   throw std::runtime_error(err.str());
 }
 
-std::vector<std::any> RespParser::parseArray() {
-  eatByte(ASTERISK_SIGN);
-
-  std::vector<std::any> arr;
+std::vector<std::string> RespParser::parseArray() {
+  std::vector<std::string> arr;
 
   int byteLength = readInt();
   for (auto i = 0; i < byteLength; i++) {
-    arr.push_back(parse());
+    std::vector<std::string> parsed = parse();
+    arr.insert(arr.end(), parsed.begin(), parsed.end());
   }
   return arr;
 }
 
 std::optional<std::string> RespParser::parseBulkString() {
-  eatByte(DOLLAR_SIGN);
-
   int byteLength = readInt();
   if (byteLength == -1) {
-    return nullptr;
+    return std::nullopt;
   }
 
-  // TODO: check for buffer overflow
+  if (position + byteLength > buffer.size()) {
+    throw std::runtime_error("Bulk string length exceeds buffer size");
+  }
 
   std::string str(buffer.begin() + position,
                   buffer.begin() + position + byteLength);
-  position += byteLength;
-  eatByte(CR);
-  eatByte(LF);
+  position += byteLength + 2;
+  printf("String: %s\n", str.c_str());
   return str;
 }
 
@@ -56,7 +65,7 @@ uint8_t RespParser::peekByte() {
   if (position >= buffer.size()) {
     throw std::runtime_error("Buffer underflow: No more bytes to read");
   }
-  return buffer[position];
+  return buffer[position + 1];
 }
 
 void RespParser::eatByte(int expected) {
@@ -73,13 +82,17 @@ void RespParser::eatByte(int expected) {
        << std::hex << actual << ")";
     throw std::runtime_error(ss.str());
   }
+  // printf("eatByte: %c\n", actual);
+  // printf("Current byte: %c\n", buffer[position]);
+  // printf("Next byte: %c\n", buffer[position + 1]);
+  // printf("bytes position: %d\n", position);
   position++;
 }
 
 int RespParser::locateCRLF() {
-  for (auto i = position; i < buffer.size() - 1; i++) {
+  for (size_t i = position; i < buffer.size() - 1; i++) {
     if (buffer[i] == CR && buffer[i + 1] == LF) {
-      return i;
+      return static_cast<int>(i);
     }
   }
   return -1;
@@ -96,8 +109,7 @@ int RespParser::readInt() {
   try {
     int value = std::stoi(line);
     std::cout << "readInt: " << value << std::endl;
-    eatByte(CR);
-    eatByte(LF);
+    position = end_of_int + 2;
     return value;
   } catch (const std::invalid_argument &e) {
     throw std::runtime_error("Invalid integer format");
