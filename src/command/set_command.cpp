@@ -1,15 +1,17 @@
 #include "../../include/command/set_command.hpp"
+#include "../../include/data_store/data_store.hpp"
 #include <algorithm>
 #include <cctype>
 #include <optional>
 #include <string>
 
-SetCommand::SetCommand(string k, string val, optional<int32_t> ex,
-                       optional<bool> nx)
-    : BaseCommand("set"), key(std::move(k)), value(std::move(val)),
-      exSeconds(ex), nx(nx) {}
+SetCommand::SetCommand(BaseDataStore &store, string k, string val,
+                       optional<int32_t> ex, optional<bool> nx)
+    : BaseCommand("set"), store(store), key(std::move(k)),
+      value(std::move(val)), exSeconds(ex), nx(nx) {}
 
-SetCommand SetCommand::parseSetCommand(std::vector<std::string> parts) {
+SetCommand SetCommand::parseSetCommand(const std::vector<std::string> parts,
+                                       BaseDataStore &store) {
   if (parts.size() < 3) {
     // TODO: add more error details
     throw std::runtime_error("Invalid SET command");
@@ -34,12 +36,19 @@ SetCommand SetCommand::parseSetCommand(std::vector<std::string> parts) {
     }
   }
 
-  return SetCommand(key, value, exSeconds, nx);
+  return SetCommand(store, key, value, exSeconds, nx);
 }
 
 std::vector<uint8_t> SetCommand::execute() {
+  std::string res;
+
+  bool result = store.set(key, value);
+  if (result) {
+    res = "OK\r\n";
+  } else {
+    res = "-ERR Unable to set key\r\n";
+  }
+
   // save to memory and disk later
-  //
-  std::string res = "+OK\r\n";
   return std::vector<uint8_t>(res.begin(), res.end());
 }
