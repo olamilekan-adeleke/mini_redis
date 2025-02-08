@@ -11,8 +11,8 @@ using namespace std;
 
 int main() {
   Server server = Server();
-  RequestHandler handler = [](const uint8_t *data,
-                              size_t length) -> std::vector<uint8_t> {
+  auto handler = [](const uint8_t *data,
+                    size_t length) -> std::vector<uint8_t> {
     if (length >= 4 && memcmp(data, "close", 4) == 0) {
       exit(0);
     }
@@ -21,11 +21,9 @@ int main() {
       std::cout << static_cast<char>(data[i]);
     }
     std::cout << std::endl;
-
     std::vector<uint8_t> req_data = {data, data + length};
 
     try {
-
       CommandParser command_parser = CommandParser();
       OptionalUniquePtr<BaseCommand> command = command_parser.parse(req_data);
 

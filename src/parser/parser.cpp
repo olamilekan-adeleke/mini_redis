@@ -1,5 +1,4 @@
 #include "../../include/parser/parser.hpp"
-#include "../../include/utils/my_utils.hpp"
 #include <cstdio>
 #include <iostream>
 #include <optional>
@@ -13,7 +12,6 @@ RespParser::RespParser(std::vector<uint8_t> &buf) : buffer(std::move(buf)) {};
 
 std::vector<std::string> RespParser::parse() {
   uint8_t type = buffer[position];
-  printf("Parsing: %c\n", type);
 
   if (type == ASTERISK_SIGN) {
     position++;
@@ -57,7 +55,6 @@ std::optional<std::string> RespParser::parseBulkString() {
   std::string str(buffer.begin() + position,
                   buffer.begin() + position + byteLength);
   position += byteLength + 2;
-  printf("String: %s\n", str.c_str());
   return str;
 }
 
@@ -82,10 +79,6 @@ void RespParser::eatByte(int expected) {
        << std::hex << actual << ")";
     throw std::runtime_error(ss.str());
   }
-  // printf("eatByte: %c\n", actual);
-  // printf("Current byte: %c\n", buffer[position]);
-  // printf("Next byte: %c\n", buffer[position + 1]);
-  // printf("bytes position: %d\n", position);
   position++;
 }
 
@@ -105,10 +98,8 @@ int RespParser::readInt() {
   }
 
   std::string line(buffer.begin() + position, buffer.begin() + end_of_int);
-
   try {
     int value = std::stoi(line);
-    std::cout << "readInt: " << value << std::endl;
     position = end_of_int + 2;
     return value;
   } catch (const std::invalid_argument &e) {
