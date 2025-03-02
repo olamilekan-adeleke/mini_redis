@@ -18,9 +18,9 @@ int main() {
       exit(0);
     }
 
-    for (size_t i = 0; i < length; i++) {
-      std::cout << static_cast<char>(data[i]);
-    }
+    // for (size_t i = 0; i < length; i++) {
+    //   std::cout << static_cast<char>(data[i]);
+    // }
     std::cout << std::endl;
     std::vector<uint8_t> req_data = {data, data + length};
 

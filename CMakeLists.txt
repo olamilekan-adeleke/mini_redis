@@ -10,22 +10,35 @@ include_directories(include/parser)
 include_directories(include/command)
 include_directories(include/utils)
 
-# Automatically detect all .cpp files in src/ and lib/ (now and future)
-file(GLOB_RECURSE SOURCES 
-    "src/*.cpp" 
-    "src/nework/*.cpp" 
-    "src/server/*.cpp" 
+file(GLOB_RECURSE SOURCES
+    "src/*.cpp"
+    "src/nework/*.cpp"
+    "src/server/*.cpp"
     "src/parser/*.cpp"
     "src/command/*.cpp"
     "src/utils/*.cpp"
 )
 
-# Build executable from all detected sources
-add_executable(app ${SOURCES})
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    message(STATUS "Building in Debug mode")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -Wpedantic -fsanitize=address") # Debug flags
+    set(BUILD_POSTFIX "_debug") # Add _debug to the executable name
+else() 
+    message(STATUS "Building in ${CMAKE_BUILD_TYPE} mode")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3") # Optimization flags
+    set(BUILD_POSTFIX "")
+endif()
 
-# Run target (auto-updates when sources change)
+
+add_executable(app${BUILD_POSTFIX} ${SOURCES})
+
 add_custom_target(run
-    COMMAND ./app
-    DEPENDS app
+    COMMAND ./app${BUILD_POSTFIX}
+    DEPENDS app${BUILD_POSTFIX} 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE) 
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
+
+install(TARGETS app${BUILD_POSTFIX} DESTINATION bin)

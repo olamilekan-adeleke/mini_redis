@@ -1,17 +1,18 @@
 #include "../../include/parser/command_parser.hpp"
-#include "../../include/command/command_error.hpp"
-#include "../../include/command/set_command.hpp"
-#include "../../include/data_store/memory_data_store.hpp"
-#include "../../include/parser/parser.hpp"
+
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
 #include <memory>
 
+#include "../../include/command/command_error.hpp"
+#include "../../include/command/set_command.hpp"
+#include "../../include/data_store/memory_data_store.hpp"
+#include "../../include/parser/parser.hpp"
+
 CommandParser::CommandParser() {}
 
-OptionalUniquePtr<BaseCommand>
-CommandParser::parse(std::vector<uint8_t> &buffer) {
+OptionalUniquePtr<BaseCommand> CommandParser::parse(std::vector<uint8_t> &buffer) {
   RespParser resp_parser(buffer);
   MemoryDataStore store;
 
@@ -35,8 +36,7 @@ CommandParser::parse(std::vector<uint8_t> &buffer) {
     std::transform(command.begin(), command.end(), command.begin(), ::toupper);
 
     if (command == "SET") {
-      return std::make_unique<SetCommand>(
-          SetCommand::parseSetCommand(result, store));
+      return std::make_unique<SetCommand>(SetCommand::parseSetCommand(result, store));
     } else {
       std::cout << "Unimplemented command received." << std::endl;
       return std::make_unique<CommandError>("Unimplemented command received");

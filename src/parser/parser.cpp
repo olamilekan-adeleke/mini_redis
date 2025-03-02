@@ -1,4 +1,5 @@
 #include "../../include/parser/parser.hpp"
+
 #include <cstdio>
 #include <iostream>
 #include <optional>
@@ -48,25 +49,27 @@ std::optional<std::string> RespParser::parseBulkString() {
     return std::nullopt;
   }
 
-  if (position + byteLength > buffer.size()) {
+  const int buff_size = static_cast<int>(buffer.size());
+  if (position + byteLength > buff_size) {
     throw std::runtime_error("Bulk string length exceeds buffer size");
   }
 
-  std::string str(buffer.begin() + position,
-                  buffer.begin() + position + byteLength);
+  std::string str(buffer.begin() + position, buffer.begin() + position + byteLength);
   position += byteLength + 2;
   return str;
 }
 
 uint8_t RespParser::peekByte() {
-  if (position >= buffer.size()) {
+  const int buff_size = static_cast<int>(buffer.size());
+  if (position >= buff_size) {
     throw std::runtime_error("Buffer underflow: No more bytes to read");
   }
   return buffer[position + 1];
 }
 
 void RespParser::eatByte(int expected) {
-  if (position >= buffer.size()) {
+  const int buff_size = static_cast<int>(buffer.size());
+  if (position >= buff_size) {
     throw std::runtime_error("Unexpected end of buffef");
   }
 
@@ -74,16 +77,16 @@ void RespParser::eatByte(int expected) {
 
   if (actual != expected) {
     std::stringstream ss;
-    ss << "Expected: " << static_cast<char>(expected) << " (0x" << std::hex
-       << expected << "), but got: " << static_cast<char>(actual) << " (0x"
-       << std::hex << actual << ")";
+    ss << "Expected: " << static_cast<char>(expected) << " (0x" << std::hex << expected
+       << "), but got: " << static_cast<char>(actual) << " (0x" << std::hex << actual << ")";
     throw std::runtime_error(ss.str());
   }
   position++;
 }
 
 int RespParser::locateCRLF() {
-  for (size_t i = position; i < buffer.size() - 1; i++) {
+  const int buff_size = static_cast<int>(buffer.size());
+  for (size_t i = position; i < buff_size - 1; i++) {
     if (buffer[i] == CR && buffer[i + 1] == LF) {
       return static_cast<int>(i);
     }

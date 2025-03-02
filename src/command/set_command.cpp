@@ -1,17 +1,16 @@
 #include "../../include/command/set_command.hpp"
-#include "../../include/data_store/data_store.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <optional>
 #include <string>
 
-SetCommand::SetCommand(BaseDataStore &store, string k, string val,
-                       optional<int32_t> ex, optional<bool> nx)
-    : BaseCommand("set"), store(store), key(std::move(k)),
-      value(std::move(val)), exSeconds(ex), nx(nx) {}
+#include "../../include/data_store/data_store.hpp"
 
-SetCommand SetCommand::parseSetCommand(const std::vector<std::string> parts,
-                                       BaseDataStore &store) {
+SetCommand::SetCommand(BaseDataStore &store, string k, string val, optional<int32_t> ex, optional<bool> nx)
+    : BaseCommand("set"), store(store), key(std::move(k)), value(std::move(val)), exSeconds(ex), nx(nx) {}
+
+SetCommand SetCommand::parseSetCommand(const std::vector<std::string> parts, BaseDataStore &store) {
   if (parts.size() < 3) {
     // TODO: add more error details
     throw std::runtime_error("Invalid SET command");
@@ -23,10 +22,9 @@ SetCommand SetCommand::parseSetCommand(const std::vector<std::string> parts,
   optional<bool> nx = std::nullopt;
 
   // Check the remainin items in a parts for the other optional params
-  for (auto i = 3; i < parts.size(); i++) {
+  for (int i = 3; i < static_cast<int>(parts.size()); i++) {
     std::string param = parts[i];
-    std::transform(param.begin(), param.end(), param.begin(),
-                   [](unsigned char c) { return std::toupper(c); });
+    std::transform(param.begin(), param.end(), param.begin(), [](unsigned char c) { return std::toupper(c); });
 
     if (param == "EX") {
       // TODO: added error check for int conversion

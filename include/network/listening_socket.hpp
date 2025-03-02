@@ -12,6 +12,8 @@ class ListeningSocket : public BindingSocket {
   ListeningSocket(int domain, int service, int port, u_long interface, int bklg);
 
   void start_listening();
+
+  virtual ~ListeningSocket() = default;
 };
 
 #endif  // !LISTENING_SOCKET_H
