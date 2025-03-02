@@ -2,23 +2,24 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "../network/listening_socket.hpp"
-#include <functional>
 #include <stdio.h>
 #include <unistd.h>
 
-using RequestHandler =
-    std::function<std::vector<uint8_t>(const uint8_t *, size_t)>;
+#include <functional>
+
+#include "../network/listening_socket.hpp"
+
+using RequestHandler = std::function<std::vector<uint8_t>(const uint8_t *, size_t)>;
 
 class Server {
-private:
+ private:
   char buffer[1024] = {0};
   ListeningSocket *socket;
   RequestHandler handler;
 
   void handle_client(int client_socket);
 
-public:
+ public:
   Server();
   ~Server() { delete socket; }
 

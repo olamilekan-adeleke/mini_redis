@@ -5,4 +5,4 @@
 
 void printByteValue(uint8_t byteValue);
 
-#endif // !MY_U
+#endif  // !MY_U

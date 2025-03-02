@@ -5,11 +5,11 @@
 #include <vector>
 
 class RespParser {
-private:
-  static const int CR = 13;            // /r
-  static const int LF = 10;            // /n
-  static const int DOLLAR_SIGN = 36;   // $
-  static const int ASTERISK_SIGN = 42; // *
+ private:
+  static const int CR = 13;             // /r
+  static const int LF = 10;             // /n
+  static const int DOLLAR_SIGN = 36;    // $
+  static const int ASTERISK_SIGN = 42;  // *
 
   std::vector<uint8_t> buffer;
   int position = 0;
@@ -22,10 +22,10 @@ private:
   std::optional<std::string> parseBulkString();
   std::vector<std::string> parseArray();
 
-public:
+ public:
   RespParser(std::vector<uint8_t> &buf);
 
   std::vector<std::string> parse();
 };
 
-#endif // !PARSER_H
+#endif  // !PARSER_H

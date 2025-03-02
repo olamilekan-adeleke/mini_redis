@@ -6,11 +6,11 @@
 #include <sys/types.h>
 
 class Socket {
-private:
+ private:
   struct sockaddr_in address;
   int sock;
 
-public:
+ public:
   Socket(int domain, int service, int port, u_long interface);
 
   virtual int connect_to_network(int sock, struct sockaddr_in address) = 0;
@@ -23,4 +23,4 @@ public:
   void set_connection(int domain);
 };
 
-#endif // SOCKET_HPP
+#endif  // SOCKET_HPP

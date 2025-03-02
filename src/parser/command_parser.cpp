@@ -16,11 +16,9 @@ CommandParser::parse(std::vector<uint8_t> &buffer) {
   MemoryDataStore store;
 
   try {
-
     std::vector<std::string> result = resp_parser.parse();
 
     printf("Array size: %lu\n", result.size());
-
     if (result.empty()) {
       std::cout << "Empty array received." << std::endl;
       return std::make_unique<CommandError>("Empty array received.");

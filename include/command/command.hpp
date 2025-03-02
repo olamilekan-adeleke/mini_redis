@@ -4,7 +4,7 @@
 #include <string>
 
 class BaseCommand {
-public:
+ public:
   BaseCommand(std::string name) : name(std::move(name)) {}
 
   std::string name;
@@ -13,4 +13,4 @@ public:
   virtual ~BaseCommand() = default;
 };
 
-#endif // !BASE_COMMAND_H
+#endif  // !BASE_COMMAND_H

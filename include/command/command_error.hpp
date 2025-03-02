@@ -1,12 +1,12 @@
 #ifndef COMMAND_ERROR_H
 #define COMMAND_ERROR_H
 
-#include "./command.hpp"
 #include <vector>
 
-class CommandError : public BaseCommand {
+#include "./command.hpp"
 
-public:
+class CommandError : public BaseCommand {
+ public:
   std::string err;
   CommandError(std::string err);
 
@@ -15,4 +15,4 @@ public:
   ~CommandError() override = default;
 };
 
-#endif // !COMMAND_ERROR_H
+#endif  // !COMMAND_ERROR_H

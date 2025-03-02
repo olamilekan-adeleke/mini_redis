@@ -1,9 +1,11 @@
-#include "../include/parser/command_parser.hpp"
-#include "../include/server/server.hpp"
 #include <arpa/inet.h>
-#include <iostream>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#include <iostream>
+
+#include "../include/parser/command_parser.hpp"
+#include "../include/server/server.hpp"
 
 using namespace std;
 
@@ -11,8 +13,7 @@ using namespace std;
 
 int main() {
   Server server = Server();
-  auto handler = [](const uint8_t *data,
-                    size_t length) -> std::vector<uint8_t> {
+  auto handler = [](const uint8_t *data, size_t length) -> std::vector<uint8_t> {
     if (length >= 4 && memcmp(data, "close", 4) == 0) {
       exit(0);
     }
