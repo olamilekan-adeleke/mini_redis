@@ -34,15 +34,15 @@ SetCommand SetCommand::parseSetCommand(const std::vector<std::string> parts, Bas
     }
   }
 
-  return SetCommand(store, key, value, exSeconds, nx);
+  return SetCommand(store, std::move(key), std::move(value), exSeconds, nx);
 }
 
 std::vector<uint8_t> SetCommand::execute() {
   std::string res;
 
-  bool result = store.set(key, value);
+  bool result = store.set(&key, &value);
   if (result) {
-    res = "OK\r\n";
+    res = "+OK\r\n";
   } else {
     res = "-ERR Unable to set key\r\n";
   }

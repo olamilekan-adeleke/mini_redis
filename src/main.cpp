@@ -13,14 +13,12 @@ using namespace std;
 
 int main() {
   Server server = Server();
+
   auto handler = [](const uint8_t *data, size_t length) -> std::vector<uint8_t> {
     if (length >= 4 && memcmp(data, "close", 4) == 0) {
       exit(0);
     }
 
-    // for (size_t i = 0; i < length; i++) {
-    //   std::cout << static_cast<char>(data[i]);
-    // }
     std::cout << std::endl;
     std::vector<uint8_t> req_data = {data, data + length};
 
@@ -31,6 +29,8 @@ int main() {
       if (command.has_value()) {
         std::unique_ptr<BaseCommand> cmd = std::move(*command);
         std::vector<uint8_t> resp = cmd->execute();
+
+        std::cout << "Response: " << std::string(resp.begin(), resp.end()) << std::endl;
         return resp;
       }
 
