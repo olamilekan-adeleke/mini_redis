@@ -23,8 +23,8 @@ class Server {
   void handle_client(int client_socket);
   void accept_connections();
 
-  boost::fibers::condition_variable_any shutdown_cv;
-  boost::fibers::mutex shutdown_mutex;
+  // boost::fibers::condition_variable_any shutdown_cv;
+  // boost::fibers::mutex shutdown_mutex;
 
  public:
   Server();

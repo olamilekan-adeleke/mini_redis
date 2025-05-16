@@ -23,10 +23,10 @@ file(GLOB_RECURSE SOURCES
 # Build type configuration
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     message(STATUS "Building in Debug mode")
-    
+
     # Set common debug flags
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
-    
+
     # Compiler-specific debug flags
     if(MSVC)
         # MSVC (Visual Studio) flags
@@ -39,9 +39,9 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
         # Link flags for ASAN on GCC/Clang
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
     endif()
-    
+
     set(BUILD_POSTFIX "_debug") # Add _debug to the executable name
-else() 
+else()
     message(STATUS "Building in ${CMAKE_BUILD_TYPE} mode")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3") # Optimization flags
     set(BUILD_POSTFIX "")
@@ -50,44 +50,43 @@ endif()
 # FetchContent for managing external dependencies
 include(FetchContent)
 
-# Fetch Boost from GitHub
-set(BOOST_VERSION 1.83.0)
-string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE ${BOOST_VERSION})
-
+set(BOOST_VERSION 1.88.0)
 FetchContent_Declare(
     boost
-    URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.tar.gz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    # Alternatively, you can use the git repository
-    # GIT_REPOSITORY https://github.com/boostorg/boost.git
-    # GIT_TAG boost-${BOOST_VERSION}
+    URL https://github.com/boostorg/fiber/archive/refs/tags/boost-${BOOST_VERSION}.tar.gz
+    FIND_PACKAGE_ARGS ${BOOST_VERSION} EXACT
+    DOWNLOAD_EXTRACT_TIMESTAMP true
 )
-
-# Configure Boost build options
-set(BOOST_INCLUDE_LIBRARIES fiber context)
-set(BOOST_ENABLE_CMAKE ON)
-set(BUILD_SHARED_LIBS OFF) # Build static libraries
-
-# Make Boost available
+list(APPEND CMAKE_MODULE_PATH "${boost-src_SOURCE_DIR}/cmake")
+find_package(Boost 1.88 REQUIRED COMPONENTS system thread context fiber)
 FetchContent_MakeAvailable(boost)
 
-# Create the executable
-add_executable(app${BUILD_POSTFIX} ${SOURCES})
 
-# Link with Boost libraries
-target_link_libraries(app${BUILD_POSTFIX} 
-    Boost::fiber
-)
+# get_property(boost_SOURCE_DIR GLOBAL PROPERTY boost_SOURCE_DIR)
+# include_directories(${boost_SOURCE_DIR}) 
+#
+# set(Boost_USE_STATIC_LIBS ON)
+# set(Boost_USE_MULTITHREADED ON)
+# set(Boost_COMPONENTS system thread context fiber)
+#
+# add_executable(app${BUILD_POSTFIX} ${SOURCES})
+# set_target_properties(app${BUILD_POSTFIX} PROPERTIES CXX_STANDARD_REQUIRED ON) # Ensure standard is enforced
+#
+# target_link_libraries(app${BUILD_POSTFIX} PRIVATE
+#     ${boost_SOURCE_DIR}/libs/fiber/build/cmake/Boost-fiber-component.cmake
+#     ${boost_SOURCE_DIR}/libs/system/build/cmake/Boost-system-component.cmake
+#     ${boost_SOURCE_DIR}/libs/thread/build/cmake/Boost-thread-component.cmake
+# )
 
 # Run target
 add_custom_target(run
     COMMAND ./app${BUILD_POSTFIX}
-    DEPENDS app${BUILD_POSTFIX} 
+    DEPENDS app${BUILD_POSTFIX}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
 # Set default build type
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE) 
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 
 # Installation
