@@ -1,6 +1,5 @@
 #include "../../include/data_store/memory_data_store.hpp"
 
-#include <iostream>
 #include <optional>
 
 #include "../../include/logger/logger.hpp"

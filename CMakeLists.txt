@@ -10,6 +10,7 @@ include_directories(include/server)
 include_directories(include/parser)
 include_directories(include/command)
 include_directories(include/utils)
+include_directories(include/logger)
 
 file(GLOB_RECURSE SOURCES
     "src/*.cpp"
@@ -18,6 +19,7 @@ file(GLOB_RECURSE SOURCES
     "src/parser/*.cpp"
     "src/command/*.cpp"
     "src/utils/*.cpp"
+    "src/logger/*.cpp"
 )
 
 
@@ -60,6 +62,16 @@ add_custom_target(run
 find_package(fmt CONFIG REQUIRED)
 add_executable(app${BUILD_POSTFIX} ${SOURCES})
 target_link_libraries(app${BUILD_POSTFIX} PRIVATE fmt::fmt)
+
+find_package(Boost REQUIRED COMPONENTS fiber)
+target_link_libraries(app${BUILD_POSTFIX} PRIVATE Boost::fiber)
+
+find_package(Boost REQUIRED COMPONENTS asio)
+target_link_libraries(app${BUILD_POSTFIX} PRIVATE Boost::asio)
+
+
+
+
 
 
 
