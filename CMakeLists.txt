@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-project(mini_redis)
+project(mini_redis LANGUAGES CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -47,37 +48,6 @@ else()
     set(BUILD_POSTFIX "")
 endif()
 
-# FetchContent for managing external dependencies
-include(FetchContent)
-
-# Fetch Boost from GitHub
-set(BOOST_VERSION 1.83.0)
-string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE ${BOOST_VERSION})
-
-FetchContent_Declare(
-    boost
-    URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.tar.gz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    # Alternatively, you can use the git repository
-    # GIT_REPOSITORY https://github.com/boostorg/boost.git
-    # GIT_TAG boost-${BOOST_VERSION}
-)
-
-# Configure Boost build options
-set(BOOST_INCLUDE_LIBRARIES fiber context)
-set(BOOST_ENABLE_CMAKE ON)
-set(BUILD_SHARED_LIBS OFF) # Build static libraries
-
-# Make Boost available
-FetchContent_MakeAvailable(boost)
-
-# Create the executable
-add_executable(app${BUILD_POSTFIX} ${SOURCES})
-
-# Link with Boost libraries
-target_link_libraries(app${BUILD_POSTFIX} 
-    Boost::fiber
-)
 
 # Run target
 add_custom_target(run
@@ -86,12 +56,20 @@ add_custom_target(run
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
+# Packages
+find_package(fmt CONFIG REQUIRED)
+add_executable(app${BUILD_POSTFIX} ${SOURCES})
+target_link_libraries(app${BUILD_POSTFIX} PRIVATE fmt::fmt)
+
+
+
+install(TARGETS app${BUILD_POSTFIX} DESTINATION bin)    
+
 # Set default build type
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE) 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 
 # Installation
-install(TARGETS app${BUILD_POSTFIX} DESTINATION bin)
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     if(NOT MSVC)
         # For GCC/Clang, ensure the runtime finds the sanitizer library
