@@ -1,6 +1,8 @@
 #include "../../include/network/socket.hpp"
-#include <iostream>
+
 #include <netinet/in.h>
+
+#include "../../include/logger/logger.hpp"
 
 // created using this C implementation
 // https://medium.com/from-the-scratch/http-server-what-do-you-need-to-know-to-build-a-simple-http-server-from-scratch-d1ef8945e4fa
@@ -18,7 +20,7 @@ Socket::Socket(int domain, int service, int port, u_long interface) {
 
 void Socket::check_connection(int item_to_check) {
   if (item_to_check < 0) {
-    perror("Failed to connect...");
+    Logger::elog("Failed to connect...");
     exit(EXIT_FAILURE);
   }
 }

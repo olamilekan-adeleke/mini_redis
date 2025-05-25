@@ -3,6 +3,8 @@
 #include <iostream>
 #include <optional>
 
+#include "../../include/logger/logger.hpp"
+
 MemoryDataStore::MemoryDataStore() {};
 
 bool MemoryDataStore::set(const std::string *key, const std::string *val) {
@@ -11,15 +13,12 @@ bool MemoryDataStore::set(const std::string *key, const std::string *val) {
   try {
     std::string keyCopy(*key);
     std::string valCopy(*val);
-
-    std::cout << "Key: '" << keyCopy << "'\n";
-    std::cout << "Value: '" << valCopy << "'\n";
+    Logger::log("Key: {}, Value: {}", keyCopy, valCopy);
 
     store.try_emplace(std::move(keyCopy), std::move(valCopy));
-
     return true;
   } catch (const std::exception &e) {
-    std::cerr << "Exception in set: " << e.what() << std::endl;
+    Logger::elog("Exception in set: {}", e.what());
     return false;
   }
 }

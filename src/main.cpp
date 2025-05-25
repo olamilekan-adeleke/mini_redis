@@ -4,6 +4,7 @@
 
 #include <iostream>
 
+#include "../include/logger/Logger.hpp"
 #include "../include/parser/command_parser.hpp"
 #include "../include/server/server.hpp"
 
@@ -30,12 +31,12 @@ int main() {
         std::unique_ptr<BaseCommand> cmd = std::move(*command);
         std::vector<uint8_t> resp = cmd->execute();
 
-        std::cout << "Response: " << std::string(resp.begin(), resp.end()) << std::endl;
+        Logger::log("Response: {}", std::string(resp.begin(), resp.end()).c_str());
         return resp;
       }
 
     } catch (const std::runtime_error &e) {
-      std::cerr << "Error: " << e.what() << std::endl;
+      Logger::elog("Error: {}", e.what());
     }
 
     // Return custom response
@@ -44,9 +45,9 @@ int main() {
   };
   server.set_handler(std::move(handler));
 
-  std::cout << "Starting Server..." << std::endl;
+  Logger::log("Starting Server...");
   server.start_server();
 
-  std::cout << "Done." << std::endl;
+  Logger::elog("Exiting...");
   return 0;
 }

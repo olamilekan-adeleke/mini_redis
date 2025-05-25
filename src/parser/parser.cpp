@@ -5,6 +5,8 @@
 #include <optional>
 #include <sstream>
 
+#include "../../include/logger/logger.hpp"
+
 std::vector<std::string> _parseArray();
 std::optional<std::string> _parseBulkString();
 std::vector<std::string> parse();

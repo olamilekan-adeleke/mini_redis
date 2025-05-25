@@ -8,6 +8,7 @@
 #include "../../include/command/command_error.hpp"
 #include "../../include/command/set_command.hpp"
 #include "../../include/data_store/memory_data_store.hpp"
+#include "../../include/logger/logger.hpp"
 #include "../../include/parser/parser.hpp"
 
 CommandParser::CommandParser() {}
@@ -21,7 +22,7 @@ OptionalUniquePtr<BaseCommand> CommandParser::parse(std::vector<uint8_t> &buffer
 
     printf("Array size: %lu\n", result.size());
     if (result.empty()) {
-      std::cout << "Empty array received." << std::endl;
+      Logger::elog("Empty array received.");
       return std::make_unique<CommandError>("Empty array received.");
     }
 
@@ -38,15 +39,15 @@ OptionalUniquePtr<BaseCommand> CommandParser::parse(std::vector<uint8_t> &buffer
     if (command == "SET") {
       return std::make_unique<SetCommand>(SetCommand::parseSetCommand(result, store));
     } else {
-      std::cout << "Unimplemented command received." << std::endl;
+      Logger::elog("Unimplemented command received.");
       return std::make_unique<CommandError>("Unimplemented command received");
     }
 
   } catch (const std::runtime_error &e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    const std::string err = "Error: " + std::string(e.what());
+    Logger::elog(err);
 
     // Todo: send out an error in Resdi protocol
-    std::string err = "Error: " + std::string(e.what());
     return std::make_unique<CommandError>(err);
   }
 }
