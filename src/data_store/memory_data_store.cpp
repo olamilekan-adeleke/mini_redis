@@ -6,15 +6,13 @@
 
 MemoryDataStore::MemoryDataStore() {};
 
-bool MemoryDataStore::set(const std::string *key, const std::string *val) {
-  if (!key || !val) return false;
+bool MemoryDataStore::set(const std::string &key, const std::string &val) {
+  // std::lock_guard<std::mutex> lock(store_mutex);
 
   try {
-    std::string keyCopy(*key);
-    std::string valCopy(*val);
-    Logger::log("Key: {}, Value: {}", keyCopy, valCopy);
+    Logger::log("Key: {}, Value: {}", key, val);
 
-    store.try_emplace(std::move(keyCopy), std::move(valCopy));
+    // store.try_emplace(key, val);
     return true;
   } catch (const std::exception &e) {
     Logger::elog("Exception in set: {}", e.what());
@@ -22,9 +20,10 @@ bool MemoryDataStore::set(const std::string *key, const std::string *val) {
   }
 }
 
-std::optional<std::string> MemoryDataStore::get(const std::string *key) const {
-  if (store.count(*key)) {
-    return store.at(*key);
+std::optional<std::string> MemoryDataStore::get(const std::string &key) const {
+  auto it = store.find(key);
+  if (it != store.end()) {
+    return it->second;
   }
 
   return std::nullopt;

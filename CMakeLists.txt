@@ -22,13 +22,13 @@ file(GLOB_RECURSE SOURCES
     "src/logger/*.cpp"
 )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 
 # Build type configuration
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     message(STATUS "Building in Debug mode")
     
     # Set common debug flags
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
     
     # Compiler-specific debug flags
     if(MSVC)

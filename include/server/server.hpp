@@ -12,7 +12,6 @@ using RequestHandler = std::function<std::vector<uint8_t>(const uint8_t *, size_
 
 class Server {
  private:
-  char buffer[1024];
   bool running;
 
   ListeningSocket *socket;

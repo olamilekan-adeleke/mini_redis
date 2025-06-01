@@ -45,6 +45,8 @@ void Server::start_server() {
 }
 
 void Server::handle_client(int client_socket) {
+  char buffer[1024];
+
   while (true) {
     memset(buffer, 0, sizeof(buffer));  // clear buffer if not empty
 

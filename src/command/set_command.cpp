@@ -40,7 +40,7 @@ SetCommand SetCommand::parseSetCommand(const std::vector<std::string> parts, Bas
 std::vector<uint8_t> SetCommand::execute() {
   std::string res;
 
-  bool result = store.set(&key, &value);
+  bool result = store.set(key, value);
   if (result) {
     res = "+OK\r\n";
   } else {
