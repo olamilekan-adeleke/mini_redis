@@ -1,30 +1,34 @@
-#pragma once
-
-#include <stdio.h>
-#include <unistd.h>
+#ifndef SERVER_HPP
+#define SERVER_HPP
 
 #include <functional>
+#include <memory>
 #include <vector>
 
-#include "../network/listening_socket.hpp"
+// Include Boost.Asio headers
+#include <boost/asio.hpp>
+#include <boost/asio/spawn.hpp>
+#include <boost/asio/ts/buffer.hpp>
+#include <boost/asio/ts/internet.hpp>
 
-using RequestHandler = std::function<std::vector<uint8_t>(const uint8_t *, size_t)>;
+using RequestHandler = std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>;
 
 class Server {
- private:
-  bool running;
-
-  ListeningSocket *socket;
-  RequestHandler handler;
-
-  void handle_client(int client_socket);
-  void accept_connections();
-
  public:
   Server();
-  ~Server() { delete socket; }
+  ~Server();
 
-  void set_handler(RequestHandler h);
+  void set_handler(RequestHandler new_handler);
   void start_server();
-  void stop_server();
+
+ private:
+  boost::asio::io_context io_context;
+  boost::asio::ip::tcp::acceptor acceptor_;
+
+  RequestHandler handler;
+
+  void do_accept();
+  void handle_client_fiber(std::shared_ptr<boost::asio::ip::tcp::socket> socket, boost::asio::yield_context yield);
 };
+
+#endif  // SERVER_HPP
