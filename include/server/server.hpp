@@ -1,34 +1,28 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+// server.hpp
+#pragma once
 
 #include <functional>
 #include <memory>
-#include <vector>
+#include <string>
 
-// Include Boost.Asio headers
-#include <boost/asio.hpp>
-#include <boost/asio/spawn.hpp>
-#include <boost/asio/ts/buffer.hpp>
-#include <boost/asio/ts/internet.hpp>
-
-using RequestHandler = std::function<std::vector<uint8_t>(const std::vector<uint8_t>&)>;
+namespace oatpp {
+namespace network {
+class Server;
+}
+}  // namespace oatpp
 
 class Server {
  public:
+  using RequestHandler = std::function<std::string(const std::string&)>;
+
   Server();
   ~Server();
 
   void set_handler(RequestHandler new_handler);
   void start_server();
+  void stop();
 
  private:
-  boost::asio::io_context io_context;
-  boost::asio::ip::tcp::acceptor acceptor_;
-
   RequestHandler handler;
-
-  void do_accept();
-  void handle_client_fiber(std::shared_ptr<boost::asio::ip::tcp::socket> socket, boost::asio::yield_context yield);
+  std::shared_ptr<oatpp::network::Server> server_;
 };
-
-#endif  // SERVER_HPP

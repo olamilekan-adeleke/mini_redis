@@ -1,229 +1,129 @@
 #include "../../include/server/server.hpp"
 
-#include <boost/asio.hpp>
-#include <boost/asio/spawn.hpp>
-#include <boost/asio/ts/buffer.hpp>
-#include <boost/asio/ts/internet.hpp>
-#include <boost/fiber/all.hpp>
-#include <cstring>    // For memcmp
-#include <iostream>   // Added for std::cerr debugging
-#include <memory>     // For std::shared_ptr
-#include <stdexcept>  // For std::runtime_error
-#include <string>
-#include <vector>
+#include <oatpp/core/base/Countable.hpp>
 
 #include "../../include/logger/Logger.hpp"
+#include "oatpp/network/ConnectionHandler.hpp"
+#include "oatpp/network/Server.hpp"
+#include "oatpp/network/tcp/server/ConnectionProvider.hpp"
 
-// Custom scheduler that integrates Boost.Fiber with Boost.Asio
-class asio_scheduler : public boost::fibers::algo::algorithm {
+class RedisConnectionHandler : public oatpp::network::ConnectionHandler {
+ private:
+  using oatpp::network::ConnectionHandler::handleConnection;
+
  public:
-  asio_scheduler(boost::asio::io_context& io_ctx) : io_context_(io_ctx) {}
+  RedisConnectionHandler(Server::RequestHandler handler) : request_handler_(std::move(handler)) {}
 
-  void awakened(boost::fibers::context* ctx) noexcept override { ready_queue_.push_back(*ctx); }
-
-  boost::fibers::context* pick_next() noexcept override {
-    if (ready_queue_.empty()) {
-      return nullptr;
-    }
-    boost::fibers::context& ctx = ready_queue_.front();
-    ready_queue_.pop_front();
-    return &ctx;
+  static oatpp::Object<RedisConnectionHandler> createShared(Server::RequestHandler handler) {
+    return oatpp::Object<RedisConnectionHandler>(new RedisConnectionHandler(std::move(handler)));
   }
 
-  bool has_ready_fibers() const noexcept override { return !ready_queue_.empty(); }
+  void handleConnection(const std::shared_ptr<oatpp::data::stream::IOStream>& connection) {
+    Logger::log("New connection established from client");
 
-  void suspend_until(std::chrono::steady_clock::time_point const& time_point) noexcept override {
-    if (std::chrono::steady_clock::now() < time_point) {
-      // Run io_context for a short time to handle I/O
-      io_context_.run_for(time_point - std::chrono::steady_clock::now());
+    // Create a buffer for reading data
+    oatpp::v_io_size BUFFER_SIZE = 4096;
+    auto buffer = std::make_unique<v_char8[]>(BUFFER_SIZE);
+    std::string accumulated_data;
+
+    try {
+      while (true) {
+        // Read data from the connection
+        auto result = connection->readSimple(buffer.get(), BUFFER_SIZE);
+
+        if (result > 0) {
+          Logger::log("Read {} bytes from client", result);
+
+          // Append to accumulated data
+          accumulated_data.append(reinterpret_cast<char*>(buffer.get()), result);
+
+          // Process complete commands (assuming RESP protocol ends with \r\n)
+          size_t cmd_end;
+          while ((cmd_end = accumulated_data.find("\r\n")) != std::string::npos) {
+            // Extract one complete command
+            std::string command = accumulated_data.substr(0, cmd_end + 2);
+            accumulated_data.erase(0, cmd_end + 2);
+
+            Logger::log("Processing command: {}", command.substr(0, std::min(50UL, command.length())));
+
+            // Call your existing request handler
+            std::string response = request_handler_(command);
+
+            // Send response back to client
+            if (!response.empty()) {
+              auto bytesWritten = connection->writeSimple(response.c_str(), response.length());
+              if (bytesWritten != static_cast<oatpp::v_io_size>(response.length())) {
+                Logger::elog("Failed to write complete response to client");
+                break;
+              }
+              Logger::log("Sent {} bytes response to client", bytesWritten);
+            }
+          }
+        } else if (result == 0) {
+          Logger::log("Client disconnected (EOF)");
+          break;
+        } else {
+          Logger::elog("Error reading from client connection");
+          break;
+        }
+      }
+    } catch (const std::exception& e) {
+      Logger::elog("Exception in connection handler: {}", e.what());
     }
-  }
 
-  void notify() noexcept override {
-    // Wake up the scheduler
+    Logger::log("Connection handler finished");
   }
 
  private:
-  boost::asio::io_context& io_context_;
-  boost::fibers::scheduler::ready_queue_type ready_queue_;
+  Server::RequestHandler request_handler_;
 };
 
-Server::Server() : io_context(), acceptor_(io_context) {
+// Updated Server implementation using oat++
+Server::Server() {
+  Logger::log("Initializing oat++ environment");
+  oatpp::base::Environment::init();
+
   int port = 6379;
-  boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::tcp::v4(), port);
-
-  acceptor_.open(endpoint.protocol());
-  acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
-  acceptor_.bind(endpoint);
-  acceptor_.listen();
-
-  Logger::log("Server Listening on port: {}", std::to_string(port));
+  Logger::log("Server will listen on port: {}", port);
 }
 
 Server::~Server() {
-  // io_context.stop(); // Consider if explicit stop is needed for your shutdown logic
+  if (server_) {
+    server_->stop();
+  }
+  Logger::log("Destroying oat++ environment");
+  oatpp::base::Environment::destroy();
 }
 
-void Server::set_handler(RequestHandler new_handler) { handler = std::move(new_handler); }
+void Server::set_handler(RequestHandler new_handler) {
+  handler = std::move(new_handler);
+  Logger::log("Request handler set");
+}
 
 void Server::start_server() {
   if (!handler) {
     throw std::runtime_error("No request handler set");
   }
 
-  // Remove the Boost.Fiber scheduling algorithm setup
-  // boost::fibers::use_scheduling_algorithm<boost::fibers::algo::shared_work>();
+  Logger::log("Creating oat++ TCP connection provider on port 6379");
 
-  boost::fibers::use_scheduling_algorithm<asio_scheduler>(std::ref(io_context));
+  auto connectionProvider =
+      oatpp::network::tcp::server::ConnectionProvider::createShared({"0.0.0.0", 6379, oatpp::network::Address::IP_4});
+  const oatpp::Object<RedisConnectionHandler> connectionHandler = RedisConnectionHandler::createShared(handler);
+  server_ = oatpp::network::Server::createShared(connectionProvider, connectionHandler);
 
-  Logger::log("Server is starting asynchronous accept loop...");
-  do_accept();
+  Logger::log("Starting oat++ server...");
+  Logger::log("Server is ready to accept connections on port 6379");
 
-  Logger::log("Starting io_context.run()...");
-  io_context.run();
-  Logger::log("Server io_context.run() loop finished. Server shutting down.");
+  // This will block until server is stopped
+  server_->run();
+
+  Logger::log("Server stopped");
 }
 
-void Server::do_accept() {
-  auto client_socket = std::make_shared<boost::asio::ip::tcp::socket>(io_context);
-
-  Logger::log("do_accept: Created new socket ({}), waiting for connection...", fmt::ptr(client_socket.get()));
-
-  acceptor_.async_accept(*client_socket, [this, client_socket](const boost::system::error_code& ec) {
-    if (!ec) {
-      Logger::log("async_accept callback: Successfully accepted new connection for socket ({}).",
-                  fmt::ptr(client_socket.get()));
-      std::string remote_addr_str = "unknown";
-      try {
-        remote_addr_str = client_socket->remote_endpoint().address().to_string();
-        Logger::log("Server accepted new connection from {} on socket ({})", remote_addr_str,
-                    fmt::ptr(client_socket.get()));
-      } catch (const boost::system::system_error& ex) {
-        Logger::elog("Error getting remote endpoint for socket ({}): {}", fmt::ptr(client_socket.get()), ex.what());
-      }
-
-      // --- FIXED MINIMAL TEST ---
-      Logger::log("Attempting to spawn MINIMAL TEST LAMBDA COROUTINE for socket ({})...",
-                  fmt::ptr(client_socket.get()));
-      try {
-        // Capture client_socket by value (copying the shared_ptr) for the lambda
-        auto socket_for_test_lambda = client_socket;
-        boost::asio::spawn(io_context,  // Use io_context directly instead of acceptor's executor
-                           [socket_for_test_lambda](boost::asio::yield_context test_yield) {
-                             // CRITICAL DEBUG STEP for the minimal lambda
-                             std::cerr << "!!!!!!!!!! MINIMAL TEST LAMBDA COROUTINE ENTERED (Socket: "
-                                       << fmt::ptr(socket_for_test_lambda.get()) << ") !!!!!!!!!! " << std::endl;
-
-                             Logger::log("<<<<< MINIMAL TEST LAMBDA COROUTINE EXECUTING for socket ({}) >>>>>",
-                                         fmt::ptr(socket_for_test_lambda.get()));
-
-                             // Simulate some async work
-                             boost::asio::steady_timer timer(socket_for_test_lambda->get_executor());
-                             timer.expires_after(std::chrono::milliseconds(100));
-                             boost::system::error_code timer_ec;
-                             timer.async_wait(test_yield[timer_ec]);
-
-                             Logger::log("MINIMAL TEST: Timer completed with error: {}", timer_ec.message());
-
-                             // Close the socket
-                             boost::system::error_code close_ec;
-                             socket_for_test_lambda->close(close_ec);
-                             if (close_ec) {
-                               Logger::elog("MINIMAL TEST LAMBDA: Error closing socket ({}): {}",
-                                            fmt::ptr(socket_for_test_lambda.get()), close_ec.message());
-                             } else {
-                               Logger::log("MINIMAL TEST LAMBDA: Socket ({}) closed.",
-                                           fmt::ptr(socket_for_test_lambda.get()));
-                             }
-                             Logger::log("<<<<< MINIMAL TEST LAMBDA COROUTINE FINISHED for socket ({}) >>>>>",
-                                         fmt::ptr(socket_for_test_lambda.get()));
-                           });
-        Logger::log("MINIMAL TEST LAMBDA COROUTINE spawn call completed for socket ({}).",
-                    fmt::ptr(client_socket.get()));
-
-      } catch (const std::exception& e_test) {
-        Logger::elog("Failed to spawn MINIMAL TEST LAMBDA COROUTINE for socket ({}): {}", fmt::ptr(client_socket.get()),
-                     e_test.what());
-        // If even the test lambda fails to spawn, close the client socket
-        boost::system::error_code close_ec;
-        client_socket->close(close_ec);
-      }
-      // --- END OF MINIMAL COROUTINE TEST ---
-
-    } else {
-      Logger::elog("Accept failed: {} (code: {})", ec.message(), ec.value());
-    }
-
-    if (ec != boost::asio::error::operation_aborted && acceptor_.is_open()) {
-      Logger::log("Calling do_accept again to continue listening...");
-      do_accept();
-    } else {
-      Logger::log("Not calling do_accept again. Error: '{}' or acceptor closed.", ec.message());
-    }
-  });
-
-  Logger::log("do_accept: async_accept call initiated, returning from function call...");
-}
-
-// Definition of handle_client_fiber (updated to use coroutines)
-void Server::handle_client_fiber(std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-                                 boost::asio::yield_context yield) {
-  std::cerr << "!!!!!!!!!! ORIGINAL HANDLE_CLIENT_COROUTINE ENTERED (Socket: " << fmt::ptr(socket.get())
-            << ") !!!!!!!!!! " << std::endl;
-  Logger::log("=== ORIGINAL COROUTINE STARTED for socket ({}) ===", fmt::ptr(socket.get()));
-
-  std::string client_address_str = "unknown_client";
-  try {
-    if (socket && socket->is_open()) {
-      boost::system::error_code rep_ec;
-      boost::asio::ip::tcp::endpoint remote_ep = socket->remote_endpoint(rep_ec);
-      if (!rep_ec) {
-        client_address_str = remote_ep.address().to_string() + ":" + std::to_string(remote_ep.port());
-        Logger::log("Coroutine handling client {} on socket ({})", client_address_str, fmt::ptr(socket.get()));
-      } else {
-        Logger::elog("Coroutine for socket ({}): Could not get remote endpoint: {}", fmt::ptr(socket.get()),
-                     rep_ec.message());
-        boost::system::error_code ignored_ec;
-        socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-        socket->close(ignored_ec);
-        return;
-      }
-    } else {
-      Logger::elog("Socket is null or not open in coroutine");
-      return;
-    }
-  } catch (const std::exception& e) {
-    Logger::elog("Exception in coroutine: {}", e.what());
-    return;
+void Server::stop() {
+  if (server_) {
+    Logger::log("Stopping server...");
+    server_->stop();
   }
-
-  // Do actual work here - for example, read from the socket
-  try {
-    std::array<char, 1024> buffer;
-    boost::system::error_code read_ec;
-
-    // Async read with coroutine
-    std::size_t bytes_read = socket->async_read_some(boost::asio::buffer(buffer), yield[read_ec]);
-
-    if (!read_ec && bytes_read > 0) {
-      Logger::log("Read {} bytes from client {}", bytes_read, client_address_str);
-      // Echo the data back
-      boost::system::error_code write_ec;
-      socket->async_write_some(boost::asio::buffer(buffer, bytes_read), yield[write_ec]);
-      if (write_ec) {
-        Logger::elog("Write error for {}: {}", client_address_str, write_ec.message());
-      }
-    } else if (read_ec) {
-      Logger::log("Read error for {}: {}", client_address_str, read_ec.message());
-    }
-  } catch (const std::exception& e) {
-    Logger::elog("Exception during socket operations for {}: {}", client_address_str, e.what());
-  }
-
-  // Clean shutdown
-  Logger::log("Original handle_client_coroutine for {} is finishing up.", client_address_str);
-  boost::system::error_code ignored_ec;
-  socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-  socket->close(ignored_ec);
-  Logger::log("Original handle_client_coroutine for {} socket closed.", client_address_str);
 }

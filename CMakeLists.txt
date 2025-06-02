@@ -69,6 +69,8 @@ target_link_libraries(app${BUILD_POSTFIX} PRIVATE Boost::fiber)
 find_package(Boost REQUIRED COMPONENTS asio)
 target_link_libraries(app${BUILD_POSTFIX} PRIVATE Boost::asio)
 
+find_package(oatpp CONFIG REQUIRED)
+target_link_libraries(app${BUILD_POSTFIX} PRIVATE oatpp::oatpp oatpp::oatpp-test)
 
 
 

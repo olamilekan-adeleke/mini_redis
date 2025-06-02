@@ -1,7 +1,8 @@
 {
   "dependencies": [
+    "boost-asio",
     "boost-fiber",
     "fmt",
-    "boost-asio"
+    "oatpp"
   ]
 }
